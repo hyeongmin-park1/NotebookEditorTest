@@ -29,7 +29,6 @@ const App: React.FC = () => {
 
   // Fake Context 생성 함수
   const createFakeContext = async (kernel: any) => {
-    console.log("Creating fake context...");
     const settings = ServerConnection.makeSettings({
       baseUrl: "http://localhost:8888",
       wsUrl: "ws://localhost:8888",
@@ -63,8 +62,6 @@ const App: React.FC = () => {
   // 커널 및 위젯 매니저 초기화
   useEffect(() => {
     if (token) {
-      console.log("Token provided. Initializing kernel...");
-
       const serverSettings = ServerConnection.makeSettings({
         baseUrl: "http://localhost:8888",
         wsUrl: "ws://localhost:8888",
@@ -76,7 +73,6 @@ const App: React.FC = () => {
       kernelManager
         .startNew()
         .then(async (kernel) => {
-          console.log("Kernel started:", kernel);
           setKernel(kernel);
 
           const context = await createFakeContext(kernel);
@@ -87,6 +83,43 @@ const App: React.FC = () => {
           managerRef.current = new JupyterLabManager(context, rendermime, {
             saveState: false,
           });
+
+          kernel.registerCommTarget("jupyter.widget", (comm, msg) => {
+            const classicComm = {
+              comm_id: comm.commId,
+              target_name: comm.targetName,
+              on_msg: (callback: (x: any) => void) => {
+                comm.onMsg = (msg: KernelMessage.ICommMsgMsg) => {
+                  callback(msg);
+                };
+              },
+              on_close: (callback: (x: any) => void) => {
+                comm.onClose = (msg: KernelMessage.ICommCloseMsg) => {
+                  callback(msg);
+                };
+              },
+              send: (
+                data: any,
+                callbacks?: any,
+                metadata?: any,
+                buffers?: ArrayBuffer[]
+              ) => {
+                comm.send(data, metadata, buffers);
+                return comm.commId;
+              },
+              close: () => {
+                comm.close();
+                return comm.commId;
+              },
+              open: () => {
+                console.log("Comm channel opened", comm.targetName);
+                return comm.commId;
+              },
+            };
+
+            managerRef.current?.handle_comm_open(classicComm, msg);
+          });
+
           console.log("Widget manager initialized");
 
           // outputArea 초기화
@@ -103,7 +136,6 @@ const App: React.FC = () => {
             outputRef.current.appendChild(panel.node);
 
             setOutputArea(outputArea);
-            console.log("Output area initialized");
           }
 
           setKernelStarted(true);
@@ -129,6 +161,30 @@ const App: React.FC = () => {
 
       future.onIOPub = (msg: KernelMessage.IIOPubMessage) => {
         outputArea.future = future;
+
+        // 위젯 상태 처리 로직 추가
+        if (
+          msg.header.msg_type === "display_data" &&
+          "data" in msg.content &&
+          msg.content.data["application/vnd.jupyter.widget-state+json"]
+        ) {
+          const widgetState = msg.content.data[
+            "application/vnd.jupyter.widget-state+json"
+          ] as any;
+
+          managerRef.current
+            ?.set_state(widgetState)
+            .then(() => {
+              console.log(
+                "Widget state has been applied successfully:",
+                widgetState
+              );
+            })
+            .catch((err) => {
+              console.error("Failed to apply widget state:", err);
+            });
+        }
+
         console.log("Message received:", msg);
       };
 
@@ -151,7 +207,6 @@ const App: React.FC = () => {
 
   const handleEditorDidMount = (editor: any) => {
     editorRef.current = editor;
-    console.log("Editor mounted");
   };
 
   return (
