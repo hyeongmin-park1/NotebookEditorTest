@@ -175,10 +175,7 @@ const App: React.FC = () => {
           managerRef.current
             ?.set_state(widgetState)
             .then(() => {
-              console.log(
-                "Widget state has been applied successfully:",
-                widgetState
-              );
+              console.log(widgetState);
             })
             .catch((err) => {
               console.error("Failed to apply widget state:", err);
