@@ -83,7 +83,7 @@ const App: React.FC = () => {
           managerRef.current = new JupyterLabManager(context, rendermime, {
             saveState: false,
           });
-
+          ////// registerCommTarget을 프런트에서 진행해보려 함
           kernel.registerCommTarget("jupyter.widget", (comm, msg) => {
             const classicComm = {
               comm_id: comm.commId,
@@ -119,7 +119,7 @@ const App: React.FC = () => {
 
             managerRef.current?.handle_comm_open(classicComm, msg);
           });
-
+          //////
           console.log("Widget manager initialized");
 
           // outputArea 초기화
@@ -162,7 +162,7 @@ const App: React.FC = () => {
       future.onIOPub = (msg: KernelMessage.IIOPubMessage) => {
         outputArea.future = future;
 
-        // 위젯 상태 처리 로직 추가
+        ////// 위젯 상태 처리 로직 추가
         if (
           msg.header.msg_type === "display_data" &&
           "data" in msg.content &&
@@ -184,7 +184,7 @@ const App: React.FC = () => {
               console.error("Failed to apply widget state:", err);
             });
         }
-
+        //////
         console.log("Message received:", msg);
       };
 
