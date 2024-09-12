@@ -162,7 +162,7 @@ const App: React.FC = () => {
       future.onIOPub = (msg: KernelMessage.IIOPubMessage) => {
         outputArea.future = future;
 
-        ////// 위젯 상태 처리 로직 추가
+        //////"application/vnd.jupyter.widget-state+json" 활용 위젯 상태 처리 로직 추가
         if (
           msg.header.msg_type === "display_data" &&
           "data" in msg.content &&
@@ -175,7 +175,10 @@ const App: React.FC = () => {
           managerRef.current
             ?.set_state(widgetState)
             .then(() => {
-              console.log(widgetState);
+              console.log(
+                "Widget state has been applied successfully:",
+                widgetState
+              );
             })
             .catch((err) => {
               console.error("Failed to apply widget state:", err);
